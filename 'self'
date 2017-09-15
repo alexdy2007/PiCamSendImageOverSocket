@@ -1,0 +1,73 @@
+import picamera
+import picamera.array as picarray
+
+from time import sleep
+import socket
+import atexit
+
+
+
+host = ''
+port = 5560
+        
+def setup_server():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(("127.0.1.1", 4460))
+    except socket.error as msg:
+        print(msg)
+    print("Socket created")
+    return s
+
+def setup_connection(s):
+    s.listen(1)
+    conn, address = s.accept()
+    print("Connected to {0}:{1}".format(address[0],address[1]))
+    return conn
+
+def data_transfer():
+    while True:
+        past_picture_str = None
+        data = conn.recv(1024)
+        data = data.decode('utf-8')
+        dataMessage = data.split(' ',1)
+        command  = dataMessage[0]
+        if command == "length":
+            if past_picture_str is not None:
+                reply = str(len(past_picture_str)).ljust(16).encode('utf-8')
+            else:
+                print("past picture not taken")
+                reply = "0"
+        elif command == "picture":
+            past_picture_str = _take_picture_as_np_array()
+            reply = past_picture
+        elif command == "kill":
+            print("terminating server")
+            conn.close()
+        elif command == "exit":
+             print("client has left")
+             break
+        else:
+            reply = "Not Valid Command"
+
+        conn.sendall(str.encode(reply))
+
+
+def _take_picture_as_np_rgb(self):
+    with picamera.PiCamera() as camera:
+        with picamera.array.PiRGBArray(camera) as output:
+            camera.resolution = (1280, 720)
+            camera.capture(output,'rgb')
+    return str(output)
+         
+
+s = setup_server()
+
+while True:
+    try:
+        conn = setup_connection(s)
+        data_transfer(conn)
+    except Exception as e:
+        print(e)
+        break
+
